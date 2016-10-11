@@ -60,24 +60,28 @@ function extract(mbTilesPath, geojson, propName) {
             if (!result) {
                 process.nextTick(tileSaved);
             } else {
-                var extractName = toFileName(result[propName]);
+                if (!Array.isArray(result)) result = [result];
 
-                if (extracts[extractName] && writable[extractName]) {
-                    saveTile(extracts[extractName], z, x, y);
+                for (var result_it = 0; result_it < result.length; result_it++) {
+                    var extractName = toFileName(result[result_it][propName]);
 
-                } else {
+                    if (extracts[extractName] && writable[extractName]) {
+                        saveTile(extracts[extractName], z, x, y);
 
-                    writeQueue[extractName] = writeQueue[extractName] || [];
-                    writeQueue[extractName].push([z, x, y]);
+                    } else {
 
-                    if (!extracts[extractName]) {
-                        writeExtract(extractName, function () {
-                            writable[extractName] = true;
-                            while (writeQueue[extractName].length) {
-                                var t = writeQueue[extractName].pop();
-                                saveTile(extracts[extractName], t[0], t[1], t[2]);
-                            }
-                        });
+                        writeQueue[extractName] = writeQueue[extractName] || [];
+                        writeQueue[extractName].push([z, x, y]);
+
+                        if (!extracts[extractName]) {
+                            writeExtract(extractName, function () {
+                                writable[extractName] = true;
+                                while (writeQueue[extractName].length) {
+                                    var t = writeQueue[extractName].pop();
+                                    saveTile(extracts[extractName], t[0], t[1], t[2]);
+                                }
+                            });
+                        }
                     }
                 }
             }
