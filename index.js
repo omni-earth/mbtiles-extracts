@@ -8,6 +8,7 @@ var whichPoly = require('which-polygon');
 var queue = require('queue-async');
 var path = require('path');
 var sm = new (require('sphericalmercator'));
+var tb = require('tilebelt');
 var mkdirp = require('mkdirp');
 
 function extract(mbTilesPath, geojson, propName) {
@@ -54,7 +55,7 @@ function extract(mbTilesPath, geojson, propName) {
                 paused = true;
             }
 
-            var result = query(unproject(z, x + 0.5, y + 0.5));
+            var result = query.bbox(tb.tileToBBOX([x,y,z]))
 
             if (!result) {
                 process.nextTick(tileSaved);
@@ -169,13 +170,6 @@ function writeMBTiles(path, done) {
         done(null, out);
     }
     return out;
-}
-
-function unproject(z, x, y) {
-    var z2 = Math.pow(2, z);
-    var lng = x * 360 / z2 - 180;
-    var lat = 360 / Math.PI * Math.atan(Math.exp((180 - y * 360 / z2) * Math.PI / 180)) - 90;
-    return [lng, lat];
 }
 
 function updateInfo(mbtiles, name, info, callback) {

@@ -17,6 +17,7 @@
     "queue-async": "^1.0.7",
     "sphericalmercator": "^1.0.4",
     "split": "^1.0.0",
+    "tilebelt": "^1.0.1",
     "which-polygon": "mapbox/which-polygon#bbox"
   },
   "devDependencies": {
