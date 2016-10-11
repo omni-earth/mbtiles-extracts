@@ -56,41 +56,48 @@ function extract(mbTilesPath, geojson, propName) {
             }
 
             var result = query.bbox(tb.tileToBBOX([x,y,z]))
-            tilesGot = tilesGot + (result.length > 0 ? 0 : result.length - 1);
 
             if (!result) {
                 process.nextTick(tileSaved);
             } else {
                 if (!Array.isArray(result)) result = [result];
 
+                var saveQ = new queue();
+
                 for (var result_it = 0; result_it < result.length; result_it++) {
                     var extractName = toFileName(result[result_it][propName]);
 
                     if (extracts[extractName] && writable[extractName]) {
-                        saveTile(extracts[extractName], z, x, y);
+                        saveQ.defer(saveTile, extracts[extractName], z, x, y);
 
                     } else {
-                        writeQueue[extractName] = writeQueue[extractName] || [];
-                        writeQueue[extractName].push([z, x, y]);
+                        saveQ.defer(function(done) {
+                            writeQueue[extractName] = writeQueue[extractName] || [];
+                            writeQueue[extractName].push([z, x, y]);
 
-                        if (!extracts[extractName]) {
-                            writeExtract(extractName, function () {
-                                writable[extractName] = true;
-                                while (writeQueue[extractName].length) {
-                                    var t = writeQueue[extractName].pop();
-                                    saveTile(extracts[extractName], t[0], t[1], t[2]);
-                                }
-                            });
-                        }
+                            if (!extracts[extractName]) {
+                                writeExtract(extractName, function () {
+                                    writable[extractName] = true;
+                                    var subsaveQ = new queue();
+                                    while (writeQueue[extractName].length) {
+                                        var t = writeQueue[extractName].pop();
+                                        subsaveQ.defer(saveTile, extracts[extractName], t[0], t[1], t[2]);
+                                    }
+                                    subsaveQ.awaitAll(done);
+                                });
+                            }
+                        });
                     }
                 }
+                
+                saveQ.awaitAll(tileSaved);
             }
         }
 
-        function saveTile(out, z, x, y) {
+        function saveTile(out, z, x, y, done) {
             db.getTile(z, x, y, function (err, data) {
                 if (err) throw err;
-                out.putTile(z, x, y, data, tileSaved);
+                out.putTile(z, x, y, data, done);
             });
         }
 
@@ -113,7 +120,7 @@ function extract(mbTilesPath, geojson, propName) {
                 if (err) throw err;
 
 
-                var updateQ = queue();
+                var updateQ = new queue();
                 for (var id in extracts) {
                     updateQ.defer(updateInfo, extracts[id], id, info);
                 }
@@ -121,7 +128,7 @@ function extract(mbTilesPath, geojson, propName) {
                 updateQ.awaitAll(function (err, extracts) {
                     if (err) throw err;
 
-                    var doneQ = queue();
+                    var doneQ = new queue();
                     var length = extracts.length;
                     for (var i = 0; i < length; i++) {
                         doneQ.defer(extracts[i].stopWriting.bind(extracts[i]));
