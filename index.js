@@ -5,7 +5,7 @@ module.exports = extract;
 var MBTiles = require('mbtiles');
 var split = require('split');
 var whichPoly = require('which-polygon');
-var queue = require('queue-async');
+var Q = require('d3-queue');
 var path = require('path');
 var sm = new (require('sphericalmercator'));
 var tb = require('tilebelt');
@@ -42,7 +42,6 @@ function extract(mbTilesPath, geojson, propName) {
         }
 
         function onData(str) {
-
             tilesGot++;
 
             var tile = str.split('/');
@@ -62,7 +61,7 @@ function extract(mbTilesPath, geojson, propName) {
             } else {
                 if (!Array.isArray(result)) result = [result];
 
-                var saveQ = new queue();
+                var saveQ = Q.queue(1);
 
                 for (var result_it = 0; result_it < result.length; result_it++) {
                     var extractName = toFileName(result[result_it][propName]);
@@ -78,13 +77,15 @@ function extract(mbTilesPath, geojson, propName) {
                             if (!extracts[extractName]) {
                                 writeExtract(extractName, function () {
                                     writable[extractName] = true;
-                                    var subsaveQ = new queue();
+                                    var subsaveQ = Q.queue();
                                     while (writeQueue[extractName].length) {
                                         var t = writeQueue[extractName].pop();
                                         subsaveQ.defer(saveTile, extracts[extractName], t[0], t[1], t[2]);
                                     }
                                     subsaveQ.awaitAll(done);
                                 });
+                            } else {
+                                done();
                             }
                         });
                     }
@@ -120,7 +121,7 @@ function extract(mbTilesPath, geojson, propName) {
                 if (err) throw err;
 
 
-                var updateQ = new queue();
+                var updateQ = Q.queue();
                 for (var id in extracts) {
                     updateQ.defer(updateInfo, extracts[id], id, info);
                 }
@@ -128,7 +129,7 @@ function extract(mbTilesPath, geojson, propName) {
                 updateQ.awaitAll(function (err, extracts) {
                     if (err) throw err;
 
-                    var doneQ = new queue();
+                    var doneQ = Q.queue();
                     var length = extracts.length;
                     for (var i = 0; i < length; i++) {
                         doneQ.defer(extracts[i].stopWriting.bind(extracts[i]));
