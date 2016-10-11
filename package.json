@@ -17,7 +17,7 @@
     "queue-async": "^1.0.7",
     "sphericalmercator": "^1.0.4",
     "split": "^1.0.0",
-    "which-polygon": "^2.0.0"
+    "which-polygon": "mapbox/which-polygon#bbox"
   },
   "devDependencies": {
     "eslint": "^1.9.0",
