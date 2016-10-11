@@ -56,6 +56,7 @@ function extract(mbTilesPath, geojson, propName) {
             }
 
             var result = query.bbox(tb.tileToBBOX([x,y,z]))
+            tilesGot = tilesGot + (result.length > 0 ? 0 : result.length - 1);
 
             if (!result) {
                 process.nextTick(tileSaved);
@@ -69,7 +70,6 @@ function extract(mbTilesPath, geojson, propName) {
                         saveTile(extracts[extractName], z, x, y);
 
                     } else {
-
                         writeQueue[extractName] = writeQueue[extractName] || [];
                         writeQueue[extractName].push([z, x, y]);
 
