@@ -70,24 +70,24 @@ function extract(mbTilesPath, geojson, propName) {
                         saveQ.defer(saveTile, extracts[extractName], z, x, y);
 
                     } else {
-                        saveQ.defer(function(done) {
-                            writeQueue[extractName] = writeQueue[extractName] || [];
-                            writeQueue[extractName].push([z, x, y]);
+                        saveQ.defer(function(eName, done) {
+                            writeQueue[eName] = writeQueue[eName] || [];
+                            writeQueue[eName].push([z, x, y]);
 
-                            if (!extracts[extractName]) {
-                                writeExtract(extractName, function () {
-                                    writable[extractName] = true;
+                            if (!extracts[eName]) {
+                                writeExtract(eName, function () {
+                                    writable[eName] = true;
                                     var subsaveQ = Q.queue();
-                                    while (writeQueue[extractName].length) {
-                                        var t = writeQueue[extractName].pop();
-                                        subsaveQ.defer(saveTile, extracts[extractName], t[0], t[1], t[2]);
+                                    while (writeQueue[eName].length) {
+                                        var t = writeQueue[eName].pop();
+                                        subsaveQ.defer(saveTile, extracts[eName], t[0], t[1], t[2]);
                                     }
                                     subsaveQ.awaitAll(done);
                                 });
                             } else {
                                 done();
                             }
-                        });
+                        }, extractName);
                     }
                 }
                 
